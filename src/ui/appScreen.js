@@ -15,33 +15,27 @@ const formatEffect = (upgrade) => {
     : `+${amount} BTC per second`
 }
 
-const getUpgradeMarkup = (state) =>
-  UPGRADE_DEFINITIONS.map((upgrade) => {
-    const level = state.upgrades[upgrade.id] ?? 0
-    const cost = getUpgradeCost(state, upgrade.id)
-    const disabled = cost === null || state.bitcoins < cost
+const views = new WeakMap()
 
-    return `
+const getUpgradeMarkup = () =>
+  UPGRADE_DEFINITIONS.map((upgrade) => `
       <li class="upgrade-card">
         <div class="upgrade-card__top">
           <div>
             <h3>${upgrade.name}</h3>
-            <small>Level ${level}</small>
+            <small data-field="level-${upgrade.id}">Level 0</small>
           </div>
-          <span class="upgrade-card__meta">${cost} BTC</span>
+          <span class="upgrade-card__meta" data-field="cost-${upgrade.id}"></span>
         </div>
         <div class="upgrade-card__effect">${formatEffect(upgrade)}</div>
         <p>${upgrade.description}</p>
-        <button type="button" data-action="buy-upgrade" data-upgrade-id="${upgrade.id}" ${
-          disabled ? 'disabled' : ''
-        }>
-          ${disabled ? 'Need more BTC' : `Buy for ${cost} BTC`}
+        <button type="button" data-action="buy-upgrade" data-upgrade-id="${upgrade.id}" disabled>
+          Need more BTC
         </button>
       </li>
-    `
-  }).join('')
+    `).join('')
 
-export function renderApp(root, state, actions) {
+const buildView = (root, actions) => {
   root.innerHTML = `
     <main class="screen">
       <section class="hero">
@@ -61,19 +55,19 @@ export function renderApp(root, state, actions) {
           <div class="stats" aria-label="Current mining stats">
             <article class="stat">
               <span class="stat__label">Wallet</span>
-              <span class="stat__value">${formatAmount(state.bitcoins)} BTC</span>
+              <span class="stat__value" data-field="bitcoins"></span>
             </article>
             <article class="stat">
               <span class="stat__label">Total mined</span>
-              <span class="stat__value">${formatAmount(state.totalMined)} BTC</span>
+              <span class="stat__value" data-field="totalMined"></span>
             </article>
             <article class="stat">
               <span class="stat__label">Click power</span>
-              <span class="stat__value">${formatAmount(state.clickPower)} BTC</span>
+              <span class="stat__value" data-field="clickPower"></span>
             </article>
             <article class="stat">
               <span class="stat__label">Passive rate</span>
-              <span class="stat__value">${formatAmount(state.passiveRate)} BTC/s</span>
+              <span class="stat__value" data-field="passiveRate"></span>
             </article>
           </div>
 
@@ -82,7 +76,7 @@ export function renderApp(root, state, actions) {
               <span class="mine-button__inner">
                 <img src="${bitcoinIcon}" alt="" class="mine-button__icon" />
                 <span class="mine-button__label">Mine Bitcoin</span>
-                <span class="mine-button__hint">+${formatAmount(state.clickPower)} BTC this tap</span>
+                <span class="mine-button__hint" data-field="clickHint"></span>
               </span>
             </button>
             <p>Passive miners tick every quarter second to keep the wallet growing.</p>
@@ -93,7 +87,7 @@ export function renderApp(root, state, actions) {
           <h2>Upgrades</h2>
           <p>Spend Bitcoin to boost manual clicks and unlock faster passive mining.</p>
           <ul class="upgrade-list">
-            ${getUpgradeMarkup(state)}
+            ${getUpgradeMarkup()}
           </ul>
         </aside>
       </section>
@@ -102,8 +96,54 @@ export function renderApp(root, state, actions) {
     </main>
   `
 
+  const view = {
+    bitcoins: root.querySelector('[data-field="bitcoins"]'),
+    totalMined: root.querySelector('[data-field="totalMined"]'),
+    clickPower: root.querySelector('[data-field="clickPower"]'),
+    passiveRate: root.querySelector('[data-field="passiveRate"]'),
+    clickHint: root.querySelector('[data-field="clickHint"]'),
+    upgrades: UPGRADE_DEFINITIONS.map((upgrade) => ({
+      level: root.querySelector(`[data-field="level-${upgrade.id}"]`),
+      cost: root.querySelector(`[data-field="cost-${upgrade.id}"]`),
+      button: root.querySelector(`[data-upgrade-id="${upgrade.id}"]`),
+    })),
+  }
+
   root.querySelector('[data-action="mine"]').addEventListener('click', actions.onMine)
-  root.querySelectorAll('[data-action="buy-upgrade"]').forEach((button) => {
-    button.addEventListener('click', () => actions.onBuyUpgrade(button.dataset.upgradeId))
+  view.upgrades.forEach(({ button }, index) => {
+    button.addEventListener('click', () => actions.onBuyUpgrade(UPGRADE_DEFINITIONS[index].id))
   })
+
+  return view
+}
+
+const updateView = (view, state) => {
+  view.bitcoins.textContent = `${formatAmount(state.bitcoins)} BTC`
+  view.totalMined.textContent = `${formatAmount(state.totalMined)} BTC`
+  view.clickPower.textContent = `${formatAmount(state.clickPower)} BTC`
+  view.passiveRate.textContent = `${formatAmount(state.passiveRate)} BTC/s`
+  view.clickHint.textContent = `+${formatAmount(state.clickPower)} BTC this tap`
+
+  UPGRADE_DEFINITIONS.forEach((upgrade, index) => {
+    const level = state.upgrades[upgrade.id] ?? 0
+    const cost = getUpgradeCost(state, upgrade.id)
+    const disabled = cost === null || !(state.bitcoins >= cost)
+    const refs = view.upgrades[index]
+
+    refs.level.textContent = `Level ${level}`
+    refs.cost.textContent = `${cost} BTC`
+    refs.button.disabled = disabled
+    refs.button.textContent = disabled ? 'Need more BTC' : `Buy for ${cost} BTC`
+  })
+}
+
+export function renderApp(root, state, actions) {
+  let view = views.get(root)
+
+  if (!view) {
+    view = buildView(root, actions)
+    views.set(root, view)
+  }
+
+  updateView(view, state)
 }
