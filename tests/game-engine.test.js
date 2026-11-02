@@ -114,3 +114,44 @@ test('buying an unknown upgrade is a no-op', () => {
 
   assert.equal(nextState, initialState)
 })
+
+test('loadGameState returns null when saved amounts are invalid', () => {
+  const store = { 'btc-clicker-save': JSON.stringify({ bitcoins: 'lots', totalMined: 10, upgrades: {} }) }
+  globalThis.localStorage = { getItem: (k) => store[k] ?? null, setItem: (k, v) => { store[k] = v } }
+
+  assert.equal(loadGameState(), null)
+
+  store['btc-clicker-save'] = JSON.stringify({ bitcoins: 10, totalMined: -5, upgrades: {} })
+  assert.equal(loadGameState(), null)
+
+  delete globalThis.localStorage
+})
+
+test('loadGameState sanitizes invalid upgrade levels', () => {
+  const store = {
+    'btc-clicker-save': JSON.stringify({
+      bitcoins: 50,
+      totalMined: 50,
+      upgrades: { 'gpu-rig': 'many', 'better-pickaxe': 2.7, 'server-farm': -3 },
+    }),
+  }
+  globalThis.localStorage = { getItem: (k) => store[k] ?? null, setItem: (k, v) => { store[k] = v } }
+
+  const loaded = loadGameState()
+
+  assert.equal(loaded.upgrades['gpu-rig'], 0)
+  assert.equal(loaded.upgrades['better-pickaxe'], 2)
+  assert.equal(loaded.upgrades['server-farm'], 0)
+  assert.equal(loaded.clickPower, 3)
+
+  delete globalThis.localStorage
+})
+
+test('purchaseUpgrade is a no-op when the wallet amount is not a finite number', () => {
+  const brokenState = {
+    ...createInitialGameState(),
+    bitcoins: Number.NaN,
+  }
+
+  assert.equal(purchaseUpgrade(brokenState, 'gpu-rig'), brokenState)
+})

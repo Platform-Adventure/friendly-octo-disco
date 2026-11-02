@@ -11,6 +11,24 @@ const getUpgradeDefinition = (upgradeId) =>
 const buildUpgradeLevels = () =>
   Object.fromEntries(UPGRADE_DEFINITIONS.map((upgrade) => [upgrade.id, 0]))
 
+const isValidAmount = (value) => Number.isFinite(value) && value >= 0
+
+const sanitizeUpgradeLevels = (upgrades) => {
+  const levels = buildUpgradeLevels()
+
+  if (upgrades && typeof upgrades === 'object') {
+    for (const upgrade of UPGRADE_DEFINITIONS) {
+      const level = upgrades[upgrade.id]
+
+      if (Number.isFinite(level) && level > 0) {
+        levels[upgrade.id] = Math.floor(level)
+      }
+    }
+  }
+
+  return levels
+}
+
 const calculateRates = (upgrades) =>
   UPGRADE_DEFINITIONS.reduce(
     (rates, upgrade) => {
@@ -82,7 +100,7 @@ export function purchaseUpgrade(state, upgradeId) {
   const upgrade = getUpgradeDefinition(upgradeId)
   const cost = getUpgradeCost(state, upgradeId)
 
-  if (!upgrade || cost === null || state.bitcoins < cost) {
+  if (!upgrade || cost === null || !(state.bitcoins >= cost)) {
     return state
   }
 
@@ -114,7 +132,8 @@ export function loadGameState() {
     const raw = localStorage.getItem(SAVE_KEY)
     if (!raw) return null
     const { bitcoins, totalMined, upgrades } = JSON.parse(raw)
-    const merged = { ...buildUpgradeLevels(), ...upgrades }
+    if (!isValidAmount(bitcoins) || !isValidAmount(totalMined)) return null
+    const merged = sanitizeUpgradeLevels(upgrades)
     const { clickPower, passiveRate } = calculateRates(merged)
     return { bitcoins, totalMined, clickPower, passiveRate, upgrades: merged }
   } catch {
