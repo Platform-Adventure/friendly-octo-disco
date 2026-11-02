@@ -93,6 +93,10 @@ const buildView = (root, actions) => {
       </section>
 
       <p class="footer-note">Tip: buy a GPU Rig first to unlock passive income, then stack click power for faster bursts.</p>
+
+      <a class="store-link" href="https://olieusa.myshopify.com" target="_blank" rel="noopener noreferrer">
+        Visit the Platform Adventure store
+      </a>
     </main>
   `
 
