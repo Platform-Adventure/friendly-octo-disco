@@ -12,6 +12,15 @@ const render = () => {
   })
 }
 
+const saveNow = () => store.save()
+
+globalThis.addEventListener('pagehide', saveNow)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    saveNow()
+  }
+})
+
 store.subscribe(render)
 render()
 store.start()

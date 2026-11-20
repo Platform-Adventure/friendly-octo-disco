@@ -122,8 +122,9 @@ export function purchaseUpgrade(state, upgradeId) {
 export function saveGameState(state) {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({ bitcoins: state.bitcoins, totalMined: state.totalMined, upgrades: state.upgrades }))
+    return true
   } catch {
-    // storage unavailable – ignore
+    return false
   }
 }
 
