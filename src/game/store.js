@@ -1,13 +1,22 @@
 import { advanceGame, createInitialGameState, loadGameState, mineBitcoin, purchaseUpgrade, saveGameState } from './engine.js'
 
+const SAVE_INTERVAL_MS = 1000
+
 export function createGameStore() {
   let state = loadGameState() ?? createInitialGameState()
   let timerId
   let lastUpdated = performance.now()
+  let lastSavedAt = 0
   const listeners = new Set()
 
-  const notify = () => {
-    saveGameState(state)
+  const notify = (persist) => {
+    const now = performance.now()
+
+    if (persist || now - lastSavedAt >= SAVE_INTERVAL_MS) {
+      lastSavedAt = now
+      saveGameState(state)
+    }
+
     for (const listener of listeners) {
       listener(state)
     }
@@ -20,7 +29,7 @@ export function createGameStore() {
 
     if (nextState !== state) {
       state = nextState
-      notify()
+      notify(false)
     }
   }
 
@@ -53,14 +62,14 @@ export function createGameStore() {
     },
     mine() {
       state = mineBitcoin(state)
-      notify()
+      notify(true)
     },
     buyUpgrade(upgradeId) {
       const nextState = purchaseUpgrade(state, upgradeId)
 
       if (nextState !== state) {
         state = nextState
-        notify()
+        notify(true)
       }
     },
   }

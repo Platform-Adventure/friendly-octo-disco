@@ -264,6 +264,23 @@ button {
   color: #94a3b8;
 }
 
+.store-link {
+  display: block;
+  width: fit-content;
+  margin: 1rem auto 0;
+  padding: 0.6rem 1.25rem;
+  border-radius: 999px;
+  border: 1px solid #f8fafc33;
+  color: #f8fafc;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+}
+
+.store-link:hover {
+  background: #f8fafc14;
+}
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
