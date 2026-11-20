@@ -7,14 +7,20 @@ export function createGameStore() {
   let timerId
   let lastUpdated = performance.now()
   let lastSavedAt = 0
+  let hasUnsavedChanges = false
   const listeners = new Set()
 
-  const notify = (persist) => {
-    const now = performance.now()
+  const persist = () => {
+    lastSavedAt = performance.now()
+    hasUnsavedChanges = false
+    saveGameState(state)
+  }
 
-    if (persist || now - lastSavedAt >= SAVE_INTERVAL_MS) {
-      lastSavedAt = now
-      saveGameState(state)
+  const notify = (force) => {
+    hasUnsavedChanges = true
+
+    if (force || performance.now() - lastSavedAt >= SAVE_INTERVAL_MS) {
+      persist()
     }
 
     for (const listener of listeners) {
@@ -38,8 +44,9 @@ export function createGameStore() {
       return state
     },
     save() {
-      lastSavedAt = performance.now()
-      saveGameState(state)
+      if (hasUnsavedChanges) {
+        persist()
+      }
     },
     subscribe(listener) {
       listeners.add(listener)
