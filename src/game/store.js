@@ -37,6 +37,10 @@ export function createGameStore() {
     getState() {
       return state
     },
+    save() {
+      lastSavedAt = performance.now()
+      saveGameState(state)
+    },
     subscribe(listener) {
       listeners.add(listener)
 

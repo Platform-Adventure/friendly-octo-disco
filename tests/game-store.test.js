@@ -36,3 +36,19 @@ test('store start/stop uses global timer APIs and does not require window', () =
     globalThis.clearInterval = originalClearInterval
   }
 })
+
+test('store save persists the latest passive earnings immediately', () => {
+  const saved = {}
+  globalThis.localStorage = { getItem: (k) => saved[k] ?? null, setItem: (k, v) => { saved[k] = v } }
+
+  try {
+    const store = createGameStore()
+
+    store.mine()
+    store.save()
+
+    assert.equal(JSON.parse(saved['btc-clicker-save']).bitcoins, store.getState().bitcoins)
+  } finally {
+    delete globalThis.localStorage
+  }
+})
