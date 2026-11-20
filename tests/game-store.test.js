@@ -45,6 +45,7 @@ test('store save persists the latest passive earnings immediately', () => {
     const store = createGameStore()
 
     store.mine()
+    delete saved['btc-clicker-save']
     store.save()
 
     assert.equal(JSON.parse(saved['btc-clicker-save']).bitcoins, store.getState().bitcoins)
