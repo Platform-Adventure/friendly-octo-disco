@@ -12,8 +12,7 @@ export function createGameStore() {
 
   const persist = () => {
     lastSavedAt = performance.now()
-    hasUnsavedChanges = false
-    saveGameState(state)
+    hasUnsavedChanges = !saveGameState(state)
   }
 
   const notify = (force) => {
