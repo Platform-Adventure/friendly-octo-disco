@@ -135,9 +135,9 @@ const updateView = (view, state) => {
     const refs = view.upgrades[index]
 
     refs.level.textContent = `Level ${level}`
-    refs.cost.textContent = `${cost} BTC`
+    refs.cost.textContent = `${formatAmount(cost)} BTC`
     refs.button.disabled = disabled
-    refs.button.textContent = disabled ? 'Need more BTC' : `Buy for ${cost} BTC`
+    refs.button.textContent = disabled ? 'Need more BTC' : `Buy for ${formatAmount(cost)} BTC`
   })
 }
 
